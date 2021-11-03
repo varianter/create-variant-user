@@ -4,18 +4,29 @@ import { useState } from 'react';
 
 function NewVariantForm({addUser}){
 
-  const [firstName, setFirstName] = useState();
-  const [lastName, setLastName] = useState();
-  const [email, setEmail] = useState();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("0");
 
   const handleSubmit= (e) => {
-    addUser({firstName, lastName, email});
+    addUser({company, firstName, lastName, email});
     e.preventDefault();
   }
 
 
   return (
   <form onSubmit={e => {handleSubmit(e)}}>
+    <label>Selskap</label>
+    <select name='company' 
+      value={company}
+      onChange={e => setCompany(e.target.value)}
+    >
+      <option value="0"></option>
+      <option value="1479429">Oslo</option>
+      <option value="968670">Trondheim</option>
+      <option value="000000">Bergen</option>
+    </select>
     <label>Fornavn</label>
     <input 
       name='firstName' 
@@ -47,20 +58,20 @@ function NewVariantForm({addUser}){
 
 function App() {
 
-  const [created, setCreated] = useState("");
-  const harvestAccountId = 968670;
+  const [status, setStatus] = useState("");
   const harvestAuthKey = process.env.REACT_APP_HARVEST_AUTH_KEY;
-  const harvestHeaders = {
-    "User-Agent": "create-variant",
-    "Authorization": "Bearer " + harvestAuthKey,
-    "Harvest-Account-ID": harvestAccountId,
-    "Content-Type": "application/json"
+  const getHarvestHeaders = (company) => {
+    return {
+      "User-Agent": "create-variant",
+      "Authorization": "Bearer " + harvestAuthKey,
+      "Harvest-Account-ID": company,
+      "Content-Type": "application/json" 
+    }
   };
   const baseUrl = "https://api.harvestapp.com/v2/";
 
   const createHarvestUser = async (user) => {
     
-      
     const data = {
       email : user.email, 
       first_name: user.firstName, 
@@ -73,26 +84,40 @@ function App() {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: harvestHeaders,
+        headers: getHarvestHeaders(user.company),
         body: JSON.stringify(data)
       });
+      if (!response.ok) {
+        const error = await response.text();
+        const msg = JSON.parse(error).message;
+        return {ok:false, msg};
+      }
       const json = await response.json();
-      return json.id;      
+      return {ok:true, id:json.id};      
     } catch(error)  {
       console.error('Error:', error);
+      return {ok:false, msg: error.message}; 
     };
   }
 
-  const assignUserToVariantTid = async (userId) => {
+  const assignUserToVariantTid = async (userId, user) => {
     console.log(userId);
-    const variantTidProsjektIder = ['18275198','22639922','22639947','22640097','22646435','22639990','22640019']
+    let variantTidProsjektIder = [];
+    if (user.company === "968670"){ //trondheim
+      variantTidProsjektIder = ['18275198','22639922','22639947','22640097','22646435','22639990','22640019']
+    } else if (user.company === "1479429") { //oslo
+      variantTidProsjektIder = ['29657291','29657318','29657321','29657351','29657372','29657382','29657393']
+    } else {
+      return "Selskap finnes ikke!"
+    }
+    
     const data = {user_id : userId } ;
     for (let projectId of variantTidProsjektIder ){      
       let url = baseUrl + "projects/" + projectId + "/user_assignments";
       try {
-        const response = await fetch(url, {
+        await fetch(url, {
           method: 'POST',
-          headers: harvestHeaders,
+          headers: getHarvestHeaders(user.company),
           body: JSON.stringify(data)
         });
       } catch(error)  {
@@ -105,17 +130,20 @@ function App() {
 
 
   const addUser = async (user) => {
-    const userId = await createHarvestUser(user);
-    console.log(userId);
-    const ok = await assignUserToVariantTid(userId);
-
-    setCreated(ok);
+    setStatus("Opretter bruker ...")
+    const ret = await createHarvestUser(user);
+    if (!ret.ok) {
+      setStatus(ret.msg);
+      return;
+    }
+    const ok = await assignUserToVariantTid(ret.id, user);
+    setStatus(ok);
   }
 
   return (
     <div className="App">
       <NewVariantForm addUser={addUser}/>
-      <div>{created}</div>
+      <div>{status}</div>
     </div>
   );
 }
