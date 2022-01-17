@@ -132,7 +132,7 @@ function App() {
 
 
   const addUser = async (user) => {
-    setStatus("Opretter bruker ...")
+    setStatus("Oppretter bruker ...")
     const ret = await createHarvestUser(user);
     if (!ret.ok) {
       setStatus(ret.msg);
