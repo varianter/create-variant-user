@@ -25,7 +25,7 @@ function NewVariantForm({addUser}){
       <option value="0"></option>
       <option value="1479429">Oslo</option>
       <option value="968670">Trondheim</option>
-      <option value="000000">Bergen</option>
+      <option value="1560398">Bergen</option>
     </select>
     <label>Fornavn</label>
     <input 
@@ -107,6 +107,8 @@ function App() {
       variantTidProsjektIder = ['18275198','22639922','22639947','22640097','22646435','22639990','22640019']
     } else if (user.company === "1479429") { //oslo
       variantTidProsjektIder = ['29657291','29657318','29657321','29657351','29657372','29657382','29657393']
+    } else if (user.company === "1560398") { //bergen
+      variantTidProsjektIder = ['31431252','31431536', '31431565', '31431630', '31431686', '31431756', '31431787']
     } else {
       return "Selskap finnes ikke!"
     }
