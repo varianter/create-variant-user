@@ -70,6 +70,24 @@ function App() {
   };
   const baseUrl = "https://api.harvestapp.com/v2/";
 
+  const getUserByEmail = async (user) => {
+    //TODO: Støtte flere enn 100 brukere med paging
+    let url = baseUrl + "users";
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHarvestHeaders(user.company)
+      });
+      const json = await response.json();
+      return await json.users.find( ({ email }) => email === user.email );
+    } catch(error)  {
+      console.error('Error:', error);
+      return {ok:false, msg: error.message}; 
+    };
+
+  }
+
   const createHarvestUser = async (user) => {
     
     const data = {
@@ -88,6 +106,7 @@ function App() {
         body: JSON.stringify(data)
       });
       if (!response.ok) {
+        
         const error = await response.text();
         const msg = JSON.parse(error).message;
         return {ok:false, msg};
@@ -132,10 +151,19 @@ function App() {
 
 
   const addUser = async (user) => {
-    setStatus("Oppretter bruker ...")
-    const ret = await createHarvestUser(user);
-    if (!ret.ok) {
-      setStatus(ret.msg);
+
+    setStatus("Finner bruker ...")
+    let ret = await getUserByEmail(user);
+    if (!ret){
+      setStatus("Oppretter bruker ...")
+      ret = await createHarvestUser(user);
+      if (!ret.ok) {
+        setStatus(ret.msg);
+        return;
+      }  
+    }
+    if (!ret.is_active){
+      setStatus("Brukeren finnes, men må aktiveres")
       return;
     }
     const ok = await assignUserToVariantTid(ret.id, user);
